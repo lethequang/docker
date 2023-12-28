@@ -1,0 +1,72 @@
+version: "3.8"
+services:
+
+    # PHP service
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile-php
+        container_name: onemobile-php
+        working_dir: /var/www/
+        volumes:
+            - ../one-mobile-be/:/var/www
+        networks:
+            - onemobile-network1
+
+    # Nginx service
+    nginx:
+        build:
+            context: .
+            dockerfile: Dockerfile-nginx
+        container_name: onemobile-nginx
+        ports:
+            - 8003:80
+        volumes:
+            - ../one-mobile-be:/var/www  # Adjust the relative path to your Laravel project
+            - ./backend.conf:/etc/nginx/conf.d/one_mobile_be.conf
+        depends_on:
+            - app
+        networks:
+            - onemobile-network1
+
+  # MySQL database service
+    mysql-db:
+        image: mysql
+        container_name: onemobile-mysql
+        ports:
+            - "3308:3306"
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}`
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+        env_file:
+            - ./.env
+        networks:
+            - onemobile-network1
+        volumes:
+            - onemobile_mysql_data:/var/lib/mysql
+
+    redis-db:
+        image: docker.io/bitnami/redis:7.0
+        container_name: onemobile-redis
+        environment:
+        # ALLOW_EMPTY_PASSWORD is recommended only for development.
+        - ALLOW_EMPTY_PASSWORD=yes
+        - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+        ports:
+        - '6381:6379'
+        volumes:
+        - 'onemobile_redis_data:/bitnami/redis/data'
+        networks:
+            - onemobile-network1
+
+networks:
+    onemobile-network1:
+        driver: bridge
+
+volumes:
+  onemobile_redis_data:
+    driver: local
+  onemobile_mysql_data:
+
